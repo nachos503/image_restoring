@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# CS0006: Не удалось найти файл метаданных "C:\Users\user1\Desktop\DeLaunay.NET-master\bin\Debug\DeLaunay.NET.dll".
+dotnet_diagnostic.CS0006.severity = none

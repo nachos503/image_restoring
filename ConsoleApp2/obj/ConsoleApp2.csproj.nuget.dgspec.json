@@ -1,0 +1,104 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\user1\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\user1\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\user1\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj",
+        "projectName": "ConsoleApp2",
+        "projectPath": "C:\\Users\\user1\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj",
+        "packagesPath": "C:\\Users\\user1\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\user1\\Source\\Repos\\image_restoring\\ConsoleApp2\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\user1\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "BHoM.Interop.TriangleNet": {
+              "target": "Package",
+              "version": "[6.3.0, )"
+            },
+            "DigitalRune.Engine": {
+              "target": "Package",
+              "version": "[1.20.0, )"
+            },
+            "MIConvexHull": {
+              "target": "Package",
+              "version": "[1.1.19.1019, )"
+            },
+            "Poly2Tri": {
+              "target": "Package",
+              "version": "[1.0.1, )"
+            },
+            "SixLabors.ImageSharp": {
+              "target": "Package",
+              "version": "[3.1.1, )"
+            },
+            "Speckle.Triangle": {
+              "target": "Package",
+              "version": "[1.0.0, )"
+            },
+            "System.Drawing.Common": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "System.Runtime.WindowsRuntime.UI.Xaml": {
+              "target": "Package",
+              "version": "[4.7.0, )"
+            },
+            "bertt.triangulator": {
+              "target": "Package",
+              "version": "[1.2.3, )"
+            },
+            "clipper_standard": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
