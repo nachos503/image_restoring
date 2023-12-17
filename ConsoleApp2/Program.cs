@@ -2,29 +2,36 @@
 using System.IO;
 using System.Drawing;
 
+// Triangulation - класс дял построения триангуляции на изображении
 class Triangulation
 {
-    public List<Vector2> points = new List<Vector2>();
+    // Список точек, на основе которых строятся треугольники
+    public List<ToolVector> points = new List<ToolVector>();
+    // Список треугольников
     public List<Triangle> triangles = new List<Triangle>();
 
     private DynamicCache Cache = null;
 
-    public Triangulation(List<Vector2> _points)
+    // Triangulation - очень странный и ебанутый конструктор 
+    public Triangulation(List<ToolVector> _points)
     {
         points = _points;
 
-        //Инициализация кэша
+        // Инициализация кэша
         Cache = new DynamicCache(points[2]);
 
-        //Добавление супер структуры
+        // Добавление супер структуры (что бы то ни значило) (скорей всего это ничего не значит кто бы что не говорил)
+        // По сути здесь добавялется в лист один треугольник по трем точкам и к нему добавляется по смежному ребру и третьей точке вторйо треугольник
+        // По сути так называемая супер структура - два смежных треугольника
         triangles.Add(new Triangle(points[0], points[1], points[2]));
         triangles.Add(new Triangle(triangles[0].arcs[2], points[3]));
 
-        //Добавление ссылок в ребра на смежные треугольники супер структуры
+        // Добавление ссылок в ребра на смежные треугольники супер структуры
         triangles[0].arcs[2].trAB = triangles[1];
         triangles[1].arcs[0].trBA = triangles[0];
 
-        //Добавление супер структуры в кэш
+        // Добавление супер структуры в кэш
+        // Добавление двух смежных треугольников в кэш
         Cache.Add(triangles[0]);
         Cache.Add(triangles[1]);
 
@@ -41,10 +48,13 @@ class Triangulation
         Arc OldArc1 = null;
         Arc OldArc2 = null;
 
+        // Проход по всем данным точкам
         for (int i = 4; i < _points.Count; i++)
         {
+            // текущему треугольнику присваивается тот треугольник, в котором находится текущая точка
             CurentTriangle = GetTriangleForPoint(_points[i]);
 
+            // Если текущий треугольник существует
             if (CurentTriangle != null)
             {
                 //Создание новых ребер, которые совместно с ребрами преобразуемого треугольника образуют новые три треугольника 
@@ -92,10 +102,11 @@ class Triangulation
                 if (OldArc2.trBA == CurentTriangle)
                     OldArc2.trBA = NewTriangle2;
 
-
+                // Добавление в список новых треугольников
                 triangles.Add(NewTriangle1);
                 triangles.Add(NewTriangle2);
 
+                //Добавление в кэш новых треугольников
                 Cache.Add(NewTriangle0);
                 Cache.Add(NewTriangle1);
                 Cache.Add(NewTriangle2);
@@ -104,10 +115,9 @@ class Triangulation
                 CheckDelaunayAndRebuild(OldArc1);
                 CheckDelaunayAndRebuild(OldArc2);
             }
-
         }
 
-        //Дополнительный проход
+        //Дополнительный проход для проверки на критерий Делоне
         for (int i = 0; i < triangles.Count; i++)
         {
             CheckDelaunayAndRebuild(triangles[i].arcs[0]);
@@ -116,73 +126,95 @@ class Triangulation
         }
     }
 
-    //Возвращает треугольник в котором находится данная точка
-    private Triangle GetTriangleForPoint(Vector2 _point)
+    // GetTriangleForPoint - метод, возвращающий треугольник в котором находится данная точка
+    private Triangle GetTriangleForPoint(ToolVector _point)
     {
+        // link - передача ссылки из кэша
         Triangle link = Cache.FindTriangle(_point);
-
+        // если ссылка пустая - возврат первого треугольника
         if (link == null)
         {
             link = triangles[0];
         }
-
+        // если по ссылке передали верный треугольник - возврат ссылки на треугольник
         if (IsPointInTriangle(link, _point))
         {
             return link;
         }
+        // если найденный треугольник не подошел
         else
         {
-            //Путь от некоторого треугольника до искомой точки
-            Arc way = new Arc(_point, link.Centroid);
+            //Путь от центроида найденного треугольника до искомой точки
+            Arc wayToTriangle = new Arc(_point, link.Centroid);
             Arc CurentArc = null;
-
+            // Пока точка не окажется внутри треугольника
             while (!IsPointInTriangle(link, _point))
             {
-                CurentArc = GetIntersectedArc(way, link);
+                // находим ребро, которое пересекается с найденным треугольником и некоторой прямой от искомой точки
+                CurentArc = GetIntersectedArc(wayToTriangle, link);
+
+                // присваиваем треугольник, в которое входит это ребро
                 if (link != CurentArc.trAB)
                     link = CurentArc.trAB;
                 else
                     link = CurentArc.trBA;
 
-                way = new Arc(_point, link.Centroid);
+                // если треугольник не найден, то переопределяем путь от точки до центроида нвоого треугольника
+                wayToTriangle = new Arc(_point, link.Centroid);
             }
+            // Возврат ссылки на треугольник
             return link;
-
         }
     }
 
-    //Возвращает ребро треугольника которое пересекается с линией
-    private Arc GetIntersectedArc(Arc Line, Triangle Target)
+    // GetIntersectedArc - метод, возвращающий ребро треугольника которое пересекается с линией
+    private Arc GetIntersectedArc(Arc line, Triangle triangle)
     {
-        if (Arc.ArcIntersect(Target.arcs[0], Line))
-            return Target.arcs[0];
-        if (Arc.ArcIntersect(Target.arcs[1], Line))
-            return Target.arcs[1];
-        if (Arc.ArcIntersect(Target.arcs[2], Line))
-            return Target.arcs[2];
+        if (Arc.ArcIntersect(triangle.arcs[0], line))
+            return triangle.arcs[0];
 
-        return null;
+        else if (Arc.ArcIntersect(triangle.arcs[1], line))
+            return triangle.arcs[1];
+
+        else if (Arc.ArcIntersect(triangle.arcs[2], line))
+            return triangle.arcs[2];
+
+        else
+            return null;
     }
 
-    private bool IsPointInTriangle(Triangle _triangle, Vector2 _point)
+    // IsPointInTriangle - метод, возвращающий true если заданная точка находится в заданном треугольнике
+    private bool IsPointInTriangle(Triangle _triangle, ToolVector _point)
     {
-        Vector2 P1 = _triangle.points[0];
-        Vector2 P2 = _triangle.points[1];
-        Vector2 P3 = _triangle.points[2];
-        Vector2 P4 = _point;
+        // Для удобства присвоим всем точкам треугольника переменные
+        ToolVector P1 = _triangle.points[0];
+        ToolVector P2 = _triangle.points[1];
+        ToolVector P3 = _triangle.points[2];
+        ToolVector P4 = _point;
 
+        /* Формула вычисляет определитель трех 2x2 матриц, образованных путем вычитания координат x и y точек
+            a представляет определитель матрицы, образованной путем вычитания координат x и y точки P4 из P1 и P2 соответственно.
+            b представляет определитель матрицы, образованной путем вычитания координат x и y точки P4 из P2 и P3 соответственно.
+            c представляет определитель матрицы, образованной путем вычитания координат x и y точки P4 из P3 и P1 соответственно.
+           Эта формула происходит из концепции барицентрических координат и широко используется в вычислительной геометрии для определения положения точки относительно многоугольника */
         double a = (P1.x - P4.x) * (P2.y - P1.y) - (P2.x - P1.x) * (P1.y - P4.y);
         double b = (P2.x - P4.x) * (P3.y - P2.y) - (P3.x - P2.x) * (P2.y - P4.y);
         double c = (P3.x - P4.x) * (P1.y - P3.y) - (P1.x - P3.x) * (P3.y - P4.y);
 
+        /* Знак результирующих значений a, b и c может использоваться для определения ориентации точки P4 относительно треугольника:
+            Если a, b и c все положительные или все отрицательные, то P4 находится внутри треугольника.
+            Если любое из значений a, b или c равно нулю, то P4 находится на одной из сторон треугольника.
+            Если a, b и c имеют разные знаки, то P4 находится вне треугольника.
+        */
         if ((a >= 0 && b >= 0 && c >= 0) || (a <= 0 && b <= 0 && c <= 0))
             return true;
         else
             return false;
     }
 
-    //Вычисление критерия Делоне по описанной окружности
-    private bool IsDelaunay(Vector2 A, Vector2 B, Vector2 C, Vector2 _CheckNode)
+    //IsDelaunay - метод, вычисляющий принадлежность к критерию Делоне по описанной окружности
+    //РАЗОБРАТЬ ПОТОМ ПОТОМУ ЧТО ЗДЕСЬ ОТКРОВЕННОЕ НЕПОНЯТНОЕ ДЕРЬМО
+    private bool IsDelaunay(ToolVector A, ToolVector B, ToolVector C, ToolVector _CheckNode)
     {
         double x0 = _CheckNode.x;
         double y0 = _CheckNode.y;
@@ -217,6 +249,8 @@ class Triangulation
         }
     }
 
+    //CheckDelaunayAndRebuild - метод который тожепроверяет принадлежность к критерию и перестраивает треугольник
+    //АНАЛОГИЧНО
     private void CheckDelaunayAndRebuild(Arc arc)
     {
         Triangle T1 = null;
@@ -230,7 +264,7 @@ class Triangulation
         else
             return;
 
-        Vector2[] CurentPoints = new Vector2[4];
+        ToolVector[] CurentPoints = new ToolVector[4];
 
         Arc OldArcT1A1 = null;
         Arc OldArcT1A2 = null;
@@ -307,59 +341,80 @@ class Triangulation
     }
 }
 
-public class Vector2
+
+
+// ToolVector - вспомогательный класс для работы с координатами точек
+// ПЕРЕИМЕНОВАТЬ В КАКОЙ-НИБУДЬ POINTS И НЕ ПОЗОРИТСЯ 
+public class ToolVector
 {
+    // координаты точек
     public double x;
     public double y;
 
-
-    public Vector2(double _x, double _y)
+    //конструктор
+    public ToolVector(double _x, double _y)
     {
         x = _x;
         y = _y;
     }
 
-    public static Vector2 operator -(Vector2 _a, Vector2 _b)
+    // Переписанные операторы для работы с ToolVector
+    public static ToolVector operator -(ToolVector _a, ToolVector _b)
     {
-        return new Vector2(_a.x - _b.x, _a.y - _b.y);
+        return new ToolVector(_a.x - _b.x, _a.y - _b.y);
+    }
+    public static ToolVector operator +(ToolVector _a, ToolVector _b)
+    {
+        return new ToolVector(_a.x + _b.x, _a.y + _b.y);
+    }
+    public static ToolVector operator *(ToolVector _a, double s)
+    {
+        return new ToolVector(_a.x * s, _a.y * s);
     }
 
-    public static Vector2 operator +(Vector2 _a, Vector2 _b)
-    {
-        return new Vector2(_a.x + _b.x, _a.y + _b.y);
-    }
-
-    public static Vector2 operator *(Vector2 _a, double s)
-    {
-        return new Vector2(_a.x * s, _a.y * s);
-    }
-
-    public static double CrossProduct(Vector2 v1, Vector2 v2) //Векторное произведение
+    // Векторное произведение
+    public static double CrossProduct(ToolVector v1, ToolVector v2) 
     {
         return v1.x * v2.y - v2.x * v1.y;
     }
 
 }
 
+
+
+// Triangle - класс для построения треугольников
 public class Triangle
 {
-    public Vector2[] points = new Vector2[3];
+    // точки образающие треугольник
+    public ToolVector[] points = new ToolVector[3];
+    //ребра треугольника
     public Arc[] arcs = new Arc[3];
+    //какой-то цвет для картинки
+    public System.Drawing.Color color;
 
-    public Vector2 Centroid
+    // Centroid - метод возвращающйи точку пересечения медиан треугольника (центроид)
+    public ToolVector Centroid
     {
+        /*
+         * points[0] и points[1] представляют первые две вершины треугольника.
+            вычисляет вектор от первой вершины ко второй вершин
+            вычисляет половину вектора между первой и второй вершинами
+            вычисляет середину между первой и второй вершинами
+            вычисляет вектор от середины к третьей вершине
+            масштабирует вектор на 0.6666666 (приблизительно 2/3)
+            вычитает масштабированный вектор из третьей вершины, получая центроид
+         */
         get
         {
             return points[2] - ((points[2] - (points[0] + ((points[1] - points[0]) * 0.5))) * 0.6666666);
         }
 
-        set
-        { }
+        // свойство доступно только для чтения
+        set { }
     }
 
-    public System.Drawing.Color color;
-
-    public Triangle(Vector2 _a, Vector2 _b, Vector2 _c)
+    //Построение треугольника по трем точкам
+    public Triangle(ToolVector _a, ToolVector _b, ToolVector _c)
     {
         points[0] = _a;
         points[1] = _b;
@@ -369,8 +424,9 @@ public class Triangle
         arcs[1] = new Arc(_b, _c);
         arcs[2] = new Arc(_c, _a);
     }
-
-    public Triangle(Arc _arc, Vector2 _a)
+    
+    // Построение треугольника по ребру и точке
+    public Triangle(Arc _arc, ToolVector _a)
     {
         points[0] = _arc.A;
         points[1] = _arc.B;
@@ -380,7 +436,8 @@ public class Triangle
         arcs[1] = new Arc(points[1], points[2]);
         arcs[2] = new Arc(points[2], points[0]);
     }
-
+    
+    // Построение треугольника по трем ребрам
     public Triangle(Arc _arc0, Arc _arc1, Arc _arc2)
     {
         arcs[0] = _arc0;
@@ -408,7 +465,8 @@ public class Triangle
 
     }
 
-    public Vector2 GetThirdPoint(Arc _arc)
+    //GetThirdPoint - метод получения третий точки треугольника, зная ребро
+    public ToolVector GetThirdPoint(Arc _arc)
     {
         for (int i = 0; i < 3; i++)
             if (_arc.A != points[i] && _arc.B != points[i])
@@ -417,7 +475,8 @@ public class Triangle
         return null;
     }
 
-    public Arc GetArcBeatwen2Points(Vector2 _a, Vector2 _b)
+    //GetArcBeatwen2Points - метод поиска ребра по двум заданным точкам
+    public Arc GetArcBeatwen2Points(ToolVector _a, ToolVector _b)
     {
         for (int i = 0; i < 3; i++)
             if (arcs[i].A == _a && arcs[i].B == _b || arcs[i].A == _b && arcs[i].B == _a)
@@ -426,20 +485,39 @@ public class Triangle
         return null;
     }
 
+    //GetTwoOtherArcs - метод поиска всех ребер по одному заданному
     public void GetTwoOtherArcs(Arc _a0, out Arc _a1, out Arc _a2)
     {
+        //ну тупой перебор епта
         if (arcs[0] == _a0)
-        { _a1 = arcs[1]; _a2 = arcs[2]; }
-        else if (arcs[1] == _a0)
-        { _a1 = arcs[0]; _a2 = arcs[2]; }
-        else if (arcs[2] == _a0)
-        { _a1 = arcs[0]; _a2 = arcs[1]; }
-        else
-        { _a1 = null; _a2 = null; }
-    }
+        { 
+            _a1 = arcs[1];
+            _a2 = arcs[2];
+        }
 
+        else if (arcs[1] == _a0)
+        {
+            _a1 = arcs[0];
+            _a2 = arcs[2];
+        }
+
+        else if (arcs[2] == _a0)
+        {
+            _a1 = arcs[0];
+            _a2 = arcs[1];
+        }
+
+        else
+        {
+            _a1 = null;
+            _a2 = null;
+        }
+    }
 }
 
+
+
+// DynamicCache - класс для кэша (сказали надо) (не хочу разбираться зачем и что он делает)
 class DynamicCache
 {
     private Triangle[] Cache = new Triangle[4];
@@ -451,13 +529,13 @@ class DynamicCache
     private UInt32 InCache = 0;
 
     //Реальные размеры кэшируемого пространства
-    private Vector2 SizeOfSpace;
+    private ToolVector SizeOfSpace;
 
     //Размеры одной ячейки кэша в пересчете на реальное пространство
     private double xSize;
     private double ySize;
 
-    public DynamicCache(Vector2 _sizeOfSpace)
+    public DynamicCache(ToolVector _sizeOfSpace)
     {
         SizeOfSpace = _sizeOfSpace;
         xSize = SizeOfSpace.x / (double)Size;
@@ -473,8 +551,7 @@ class DynamicCache
 
         Cache[GetKey(_T.Centroid)] = _T;
     }
-
-    public Triangle FindTriangle(Vector2 _Point)
+    public Triangle FindTriangle(ToolVector _Point)
     {
         UInt32 key = GetKey(_Point);
         if (Cache[key] != null)
@@ -514,8 +591,7 @@ class DynamicCache
 
         Cache = NewCache;
     }
-
-    private UInt32 GetKey(Vector2 _point)
+    private UInt32 GetKey(ToolVector _point)
     {
         UInt32 i = (UInt32)(_point.y / ySize);
         UInt32 j = (UInt32)(_point.x / xSize);
@@ -527,7 +603,6 @@ class DynamicCache
 
         return i * Size + j;
     }
-
     private UInt32 GetNewIndex(UInt32 _OldIndex)
     {
         UInt32 i = (_OldIndex / Size) * 2;
@@ -537,17 +612,21 @@ class DynamicCache
     }
 }
 
-public class Arc //Ребро
-{
 
-    public Vector2 A;
-    public Vector2 B;
+
+// Arc - класс для построения ребер
+public class Arc
+{
+    // точки конца ребра
+    public ToolVector A;
+    public ToolVector B;
 
     //Ссылка на треугольники в которые входит ребро
     public Triangle trAB;
     public Triangle trBA;
 
     //Ребро является границей триангуляции если не ссылается на 2 треугольника
+    //ЧТО ЭТО ПРОГРАММНО МАТЕМАТИЧЕСКОЕ НЕДОРАЗУМЕНИЕ ЗНАЧИТ ВООБЩЕ И НУЖНО ЛИ ОНО НАМ ЕСЛИ НА НЕГО НИЧЕГО НЕ ССЫЛАЕТСЯ
     public bool IsBorder
     {
         get
@@ -557,24 +636,69 @@ public class Arc //Ребро
             else
                 return false;
         }
+        // свойство доступно только для чтения
         set { }
     }
-
-    public Arc(Vector2 _A, Vector2 _B)
+    
+    //конструктор
+    public Arc(ToolVector _A, ToolVector _B)
     {
         A = _A;
         B = _B;
     }
 
+    // ArcIntersect - метод, возвращающий true усли два отрезка пересекаются
     public static bool ArcIntersect(Arc a1, Arc a2)
     {
-        Vector2 p1, p2, p3, p4;
+        //обозначим для удобности точки концов отрезков
+        ToolVector p1, p2, p3, p4;
         p1 = a1.A;
         p2 = a1.B;
         p3 = a2.A;
         p4 = a2.B;
 
-        //Перепроверить CrossProduct
+        //определение направления
+        //ХУЙ ЗНАЕТ ЗАЧЕМ НАДО ГЕОМЕТРИЮ ПЕРЕЧИТАТЬ
+        double d1 = Direction(p3, p4, p1);
+        double d2 = Direction(p3, p4, p2);
+        double d3 = Direction(p1, p2, p3);
+        double d4 = Direction(p1, p2, p4);
+
+        /*
+         Векторное произведение этих двух векторов дает значение, которое указывает направление или ориентацию трех точек. Знак результата определяет, расположены ли точки по часовой стрелке или против часовой стрелки.
+            Если результат положительный, то точки расположены против часовой стрелки.
+            Если результат отрицательный, то точки расположены по часовой стрелке.
+            Если результат равен нулю, то точки коллинеарны, то есть лежат на одной линии.
+         */
+        if (p1 == p3 || p1 == p4 || p2 == p3 || p2 == p4)
+            return false;
+
+        else if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &
+                 ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+            return true;
+
+        else if ((d1 == 0) && OnSegment(p3, p4, p1))
+            return true;
+
+        else if ((d2 == 0) && OnSegment(p3, p4, p2))
+            return true;
+
+        else if ((d3 == 0) && OnSegment(p1, p2, p3))
+            return true;
+
+        else if ((d4 == 0) && OnSegment(p1, p2, p4))
+            return true;
+
+        else
+            return false;
+    }
+
+    // ArcIntersect - метод, возвращающий true усли два отрезка, заданные точками, пересекаются
+    //МНЕ НЕ НРАВИТСЯ ЧТО В ДВУХ МЕТОДА ОДИНАКОВЫЙ КОД
+    //НУЖНО ОСТАВИТЬ НИЖНИЙ МЕТОД КАК ЕСТЬ, А В ЕГО ПЕРЕГРУЗКЕ ВЫЗВАТЬ ЕГО ЖЕ
+    public static bool ArcIntersect(ToolVector p1, ToolVector p2, ToolVector p3, ToolVector p4)
+    {
+        //определение направления
         double d1 = Direction(p3, p4, p1);
         double d2 = Direction(p3, p4, p2);
         double d3 = Direction(p1, p2, p3);
@@ -582,87 +706,71 @@ public class Arc //Ребро
 
         if (p1 == p3 || p1 == p4 || p2 == p3 || p2 == p4)
             return false;
+
         else if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &
                  ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
             return true;
+
         else if ((d1 == 0) && OnSegment(p3, p4, p1))
             return true;
+
         else if ((d2 == 0) && OnSegment(p3, p4, p2))
             return true;
+
         else if ((d3 == 0) && OnSegment(p1, p2, p3))
             return true;
+
         else if ((d4 == 0) && OnSegment(p1, p2, p4))
             return true;
+
         else
             return false;
     }
 
-    public static bool ArcIntersect(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4)
+    //GetCommonPoint - метод, возвращающий общую точку двух ребер
+    public static ToolVector GetCommonPoint(Arc a1, Arc a2)
     {
-
-        //Перепроверить CrossProduct
-        double d1 = Direction(p3, p4, p1);
-        double d2 = Direction(p3, p4, p2);
-        double d3 = Direction(p1, p2, p3);
-        double d4 = Direction(p1, p2, p4);
-
-        if (p1 == p3 || p1 == p4 || p2 == p3 || p2 == p4)
-            return false;
-        else if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &
-                 ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
-            return true;
-        else if ((d1 == 0) && OnSegment(p3, p4, p1))
-            return true;
-        else if ((d2 == 0) && OnSegment(p3, p4, p2))
-            return true;
-        else if ((d3 == 0) && OnSegment(p1, p2, p3))
-            return true;
-        else if ((d4 == 0) && OnSegment(p1, p2, p4))
-            return true;
-        else
-            return false;
-    }
-
-    public static Vector2 GetCommonPoint(Arc a1, Arc a2)
-    {
+        //тупой перебор
         if (a1.A == a2.A)
             return a1.A;
+
         else if (a1.A == a2.B)
             return a1.A;
+
         else if (a1.B == a2.A)
             return a1.B;
+
         else if (a1.B == a2.B)
             return a1.B;
+
         else
             return null;
     }
 
-    //Определяет, связаны ли ребра
+    //IsConnectedWith - определяет, связаны ли ребра
     public bool IsConnectedWith(Arc _a)
     {
-        if (A == _a.A || A == _a.B)
+        // если точка иискомого ребра совпадает с точкой данного ребра
+        if (A == _a.A || A == _a.B || B == _a.A || B == _a.B)
             return true;
 
-        if (B == _a.A || B == _a.B)
-            return true;
-
-        return false;
+        else return false;
     }
 
-    private static double Direction(Vector2 pi, Vector2 pj, Vector2 pk)
+    //Direction - метод, возвращающий направление через векторное произведение
+    private static double Direction(ToolVector pi, ToolVector pj, ToolVector pk)
     {
-        return Vector2.CrossProduct((pk - pi), (pj - pi));
+        return ToolVector.CrossProduct((pk - pi), (pj - pi));
     }
-    private static bool OnSegment(Vector2 pi, Vector2 pj, Vector2 pk)
+
+    // OnSegment - метод, который проверяет, лежит ли точка pk на отрезке, образованном двумя другими точками pi и pj
+    private static bool OnSegment(ToolVector pi, ToolVector pj, ToolVector pk)
     {
         if ((Math.Min(pi.x, pj.x) <= pk.x && pk.x <= Math.Max(pi.x, pj.x)) && (Math.Min(pi.y, pj.y) <= pk.y && pk.y <= Math.Max(pi.y, pj.y)))
             return true;
         else
             return false;
     }
-
-
-
 }
 class Program
 {
@@ -682,18 +790,18 @@ class Program
         }
 
         // Создание списка точек для триангуляции
-        List<Vector2> Points = new List<Vector2>();
+        List<ToolVector> Points = new List<ToolVector>();
 
         // Добавление "рамочных" точек
-        Points.Add(new Vector2(0, 0));
-        Points.Add(new Vector2(image.Width, 0));
-        Points.Add(new Vector2(image.Width, image.Height));
-        Points.Add(new Vector2(0, image.Height));
+        Points.Add(new ToolVector(0, 0));
+        Points.Add(new ToolVector(image.Width, 0));
+        Points.Add(new ToolVector(image.Width, image.Height));
+        Points.Add(new ToolVector(0, image.Height));
 
         // Добавление точек из массива в список
         for (int i = 0; i < array.GetLength(0); i++)
         {
-            Points.Add(new Vector2(array[i, 0], array[i, 1]));
+            Points.Add(new ToolVector(array[i, 0], array[i, 1]));
         }
 
         // Создание объекта триангуляции
