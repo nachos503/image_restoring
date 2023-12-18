@@ -1,11 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Drawing;
-using Color = System.Drawing.Color;
-using Brush = System.Drawing.Brush;
-using Point = System.Drawing.Point;
-using Graphics = System.Drawing.Graphics;
-using Rectangle = System.Drawing.Rectangle;
 
 // Triangulation - класс дял построения триангуляции на изображении
 class Triangulation
@@ -784,6 +779,16 @@ class Program
         // Загрузка изображения
         Bitmap image = new Bitmap("InterlacedImage.jpg"); // Замените путь на путь к вашему изображению
 
+        // Нахождение координат черных пикселей и их загрузка в массив
+        int[,] array = GetBlackPixelCoordinates(image);
+
+        // Вывод координат черных пикселей
+        Console.WriteLine("Black Pixel Coordinates:");
+        for (int i = 0; i < array.GetLength(0); i++)
+        {
+            Console.WriteLine($"X: {array[i, 0]}, Y: {array[i, 1]}");
+        }
+
         // Создание списка точек для триангуляции
         List<ToolVector> Points = new List<ToolVector>();
 
@@ -793,85 +798,56 @@ class Program
         Points.Add(new ToolVector(image.Width, image.Height));
         Points.Add(new ToolVector(0, image.Height));
 
-        // Добавление случайных точек с минимальным расстоянием в один пиксель
-        Random random = new Random();
-        int numberOfRandomPoints = 2000; // Установите количество случайных точек
-        int minDistance = 2; // Минимальное расстояние между точками в пикселях
-
-        for (int i = 0; i < numberOfRandomPoints; i++)
+        // Добавление точек из массива в список
+        for (int i = 0; i < array.GetLength(0); i++)
         {
-            ToolVector randomPoint = GenerateRandomPoint(random, image.Width, image.Height, minDistance, Points);
-            Points.Add(randomPoint);
+            Points.Add(new ToolVector(array[i, 0], array[i, 1]));
         }
 
         // Создание объекта триангуляции
         Triangulation triangulation = new Triangulation(Points);
 
-        // Рисование и закрашивание треугольников на изображении
+        // Рисование границ треугольников на изображении
         using (Graphics g = Graphics.FromImage(image))
         {
+            Pen pen = new Pen(Color.Red); // Цвет границы треугольников
             foreach (var triangle in triangulation.triangles)
             {
-                // Определение цвета в вершинах треугольника
-                Color color1 = GetPixel(image, (int)triangle.points[0].x, (int)triangle.points[0].y);
-                Color color2 = GetPixel(image, (int)triangle.points[1].x, (int)triangle.points[1].y);
-                Color color3 = GetPixel(image, (int)triangle.points[2].x, (int)triangle.points[2].y);
-
-                // Вычисление среднего значения цвета
-                int avgR = (color1.R + color2.R + color3.R) / 3;
-                int avgG = (color1.G + color2.G + color3.G) / 3;
-                int avgB = (color1.B + color2.B + color3.B) / 3;
-
-                Color avgColor = Color.FromArgb(avgR, avgG, avgB);
-
-                // Закрашивание треугольника средним значением цвета
-                Brush brush = new SolidBrush(avgColor);
-                g.FillPolygon(brush, new Point[] {
-                    new Point(Math.Max(0, (int)triangle.points[0].x), Math.Max(0, (int)triangle.points[0].y)),
-                    new Point(Math.Max(0, (int)triangle.points[1].x), Math.Max(0, (int)triangle.points[1].y)),
-                    new Point(Math.Max(0, (int)triangle.points[2].x), Math.Max(0, (int)triangle.points[2].y))
-                });
+                g.DrawLine(pen, (float)triangle.points[0].x, (float)triangle.points[0].y, (float)triangle.points[1].x, (float)triangle.points[1].y);
+                g.DrawLine(pen, (float)triangle.points[1].x, (float)triangle.points[1].y, (float)triangle.points[2].x, (float)triangle.points[2].y);
+                g.DrawLine(pen, (float)triangle.points[2].x, (float)triangle.points[2].y, (float)triangle.points[0].x, (float)triangle.points[0].y);
             }
         }
 
         // Сохранение результата
         image.Save("TriangulatedImage.jpg");
-    }
 
-    // Функция для генерации случайной точки с минимальным расстоянием от существующих точек
-    static ToolVector GenerateRandomPoint(Random random, int maxWidth, int maxHeight, int minDistance, List<ToolVector> existingPoints)
-    {
-        while (true)
+        static int[,] GetBlackPixelCoordinates(Bitmap image)
         {
-            int randomX = random.Next(minDistance, maxWidth - minDistance);
-            int randomY = random.Next(minDistance, maxHeight - minDistance);
+            int[,] array = new int[image.Width * image.Height, 2];
+            int index = 0;
 
-            // Проверка расстояния от новой точки до существующих точек
-            bool isValid = true;
-
-            foreach (var existingPoint in existingPoints)
+            for (int x = 0; x < image.Width; x++)
             {
-                int distanceSquared = (randomX - (int)existingPoint.x) * (randomX - (int)existingPoint.x) +
-                                      (randomY - (int)existingPoint.y) * (randomY - (int)existingPoint.y);
-
-                if (distanceSquared < minDistance * minDistance)
+                for (int y = 0; y < image.Height; y++)
                 {
-                    isValid = false;
-                    break;
+                    Color pixelColor = image.GetPixel(x, y);
+                    // Проверка на черный цвет
+                    if (pixelColor.R == 0 && pixelColor.G == 0 && pixelColor.B == 0)
+                    {
+                        array[index, 0] = x;
+                        array[index, 1] = y;
+                        index++;
+                    }
                 }
             }
 
-            if (isValid)
-                return new ToolVector(randomX, randomY);
-        }
-    }
+            // Уменьшение размера массива до активных элементов
+            int[,] resultArray = new int[index, 2];
+            Array.Copy(array, resultArray, index * 2);
 
-    // Функция для получения цвета пикселя с проверкой на границы изображения
-    static Color GetPixel(Bitmap image, int x, int y)
-    {
-        x = Math.Max(0, Math.Min(x, image.Width - 1));
-        y = Math.Max(0, Math.Min(y, image.Height - 1));
-        return image.GetPixel(x, y);
+            return resultArray;
+        }
     }
 }
 /*
