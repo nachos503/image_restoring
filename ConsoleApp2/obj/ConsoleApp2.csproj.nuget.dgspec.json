@@ -1,24 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Варвара\\Source\\Repos\\nachos503\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj": {}
+    "C:\\Users\\001\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Варвара\\Source\\Repos\\nachos503\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj": {
+    "C:\\Users\\001\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Варвара\\Source\\Repos\\nachos503\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj",
+        "projectUniqueName": "C:\\Users\\001\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj",
         "projectName": "ConsoleApp2",
-        "projectPath": "C:\\Users\\Варвара\\Source\\Repos\\nachos503\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj",
-        "packagesPath": "C:\\Users\\Варвара\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Варвара\\Source\\Repos\\nachos503\\image_restoring\\ConsoleApp2\\obj\\",
+        "projectPath": "C:\\Users\\001\\Source\\Repos\\image_restoring\\ConsoleApp2\\ConsoleApp2.csproj",
+        "packagesPath": "C:\\Users\\001\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\001\\Source\\Repos\\image_restoring\\ConsoleApp2\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Варвара\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Users\\001\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -91,8 +87,7 @@
             "net47",
             "net471",
             "net472",
-            "net48",
-            "net481"
+            "net48"
           ],
           "assetTargetFallback": true,
           "warn": true,
@@ -101,7 +96,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.403\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
         }
       }
     }
