@@ -7,18 +7,20 @@ using Point = System.Drawing.Point;
 using Graphics = System.Drawing.Graphics;
 using Rectangle = System.Drawing.Rectangle;
 
+
+
 // Triangulation - класс дял построения триангуляции на изображении
 class Triangulation
 {
     // Список точек, на основе которых строятся треугольники
-    public List<ToolVector> points = new();
+    public List<ToolPoint> points = new();
     // Список треугольников
     public List<Triangle> triangles = new();
 
     private readonly DynamicCache Cache = null;
 
     // Triangulation - очень странный и ебанутый конструктор 
-    public Triangulation(List<ToolVector> _points)
+    public Triangulation(List<ToolPoint> _points)
     {
         points = _points;
 
@@ -59,6 +61,7 @@ class Triangulation
             // текущему треугольнику присваивается тот треугольник, в котором находится текущая точка
             CurentTriangle = GetTriangleForPoint(_points[i]);
 
+            System.Console.Write("Текущий треугольник не 0?  ");
             // Если текущий треугольник существует
             if (CurentTriangle != null)
             {
@@ -66,23 +69,23 @@ class Triangulation
                 NewArc0 = new Arc(CurentTriangle.points[0], _points[i]);
                 NewArc1 = new Arc(CurentTriangle.points[1], _points[i]);
                 NewArc2 = new Arc(CurentTriangle.points[2], _points[i]);
-
+                
                 //Сохранение ребер преобразуемого треугольника
                 OldArc0 = CurentTriangle.GetArcBeatwen2Points(CurentTriangle.points[0], CurentTriangle.points[1]);
                 OldArc1 = CurentTriangle.GetArcBeatwen2Points(CurentTriangle.points[1], CurentTriangle.points[2]);
                 OldArc2 = CurentTriangle.GetArcBeatwen2Points(CurentTriangle.points[2], CurentTriangle.points[0]);
-
+                
                 //Преобразование текущего треугольника в один из новых трех
                 NewTriangle0 = CurentTriangle;
                 NewTriangle0.arcs[0] = OldArc0;
                 NewTriangle0.arcs[1] = NewArc1;
                 NewTriangle0.arcs[2] = NewArc0;
                 NewTriangle0.points[2] = _points[i];
-
+                
                 //Дополнительно создаются два треугольника
                 NewTriangle1 = new Triangle(OldArc1, NewArc2, NewArc1);
                 NewTriangle2 = new Triangle(OldArc2, NewArc0, NewArc2);
-
+                
                 //Новым ребрам передаются ссылки на образующие их треугольники
                 NewArc0.trAB = NewTriangle0;
                 NewArc0.trBA = NewTriangle2;
@@ -90,7 +93,7 @@ class Triangulation
                 NewArc1.trBA = NewTriangle0;
                 NewArc2.trAB = NewTriangle2;
                 NewArc2.trBA = NewTriangle1;
-
+                
                 //Передача ссылок на старые ребра
                 if (OldArc0.trAB == CurentTriangle)
                     OldArc0.trAB = NewTriangle0;
@@ -106,20 +109,22 @@ class Triangulation
                     OldArc2.trAB = NewTriangle2;
                 if (OldArc2.trBA == CurentTriangle)
                     OldArc2.trBA = NewTriangle2;
-
+                
                 // Добавление в список новых треугольников
                 triangles.Add(NewTriangle1);
                 triangles.Add(NewTriangle2);
-
+                
                 //Добавление в кэш новых треугольников
                 Cache.Add(NewTriangle0);
                 Cache.Add(NewTriangle1);
                 Cache.Add(NewTriangle2);
-
+                
                 CheckDelaunayAndRebuild(OldArc0);
                 CheckDelaunayAndRebuild(OldArc1);
                 CheckDelaunayAndRebuild(OldArc2);
+                System.Console.Write("Проверка Делоне  ");
             }
+            System.Console.WriteLine("Пройдена " + i + " точка");
         }
 
         //Дополнительный проход для проверки на критерий Делоне
@@ -132,37 +137,53 @@ class Triangulation
     }
 
     // GetTriangleForPoint - метод, возвращающий треугольник в котором находится данная точка
-    private Triangle GetTriangleForPoint(ToolVector _point)
+    private Triangle GetTriangleForPoint(ToolPoint _point)
     {
+        System.Console.Write("100");
         // link - передача ссылки из кэша
         Triangle link = Cache.FindTriangle(_point);
+        System.Console.Write("1");
         // если ссылка пустая - возврат первого треугольника
         link ??= triangles[0];
+        System.Console.Write("2");
         // если по ссылке передали верный треугольник - возврат ссылки на треугольник
         if (IsPointInTriangle(link, _point))
         {
             return link;
+            System.Console.Write("3");
         }
         // если найденный треугольник не подошел
         else
         {
+            System.Console.Write("4");
             //Путь от центроида найденного треугольника до искомой точки
             Arc wayToTriangle = new(_point, link.Centroid);
+            System.Console.Write("5");
             Arc CurentArc;
+            System.Console.Write("6");
             // Пока точка не окажется внутри треугольника
             while (!IsPointInTriangle(link, _point))
             {
+                System.Console.Write("7");
                 // находим ребро, которое пересекается с найденным треугольником и некоторой прямой от искомой точки
                 CurentArc = GetIntersectedArc(wayToTriangle, link);
+                System.Console.Write("8");
 
                 // присваиваем треугольник, в которое входит это ребро
-                if (link != CurentArc.trAB)
-                    link = CurentArc.trAB;
-                else
+                // ТУТ ЕБУЧАЯ ОШИБКА ПОТОМУ ЧТО КАКОГО-ТО ХУЯ РЕБРО НЕ ПЕРЕСЕКАЕТСЯ
+                // ЧЕГО НАХУЙ НЕ МОЖЕТ БЫТЬ, ПОТОМУ ЧТО МЫ РИСУЕМ ИЗ ЦЕНТРА ТРЕУГОЛЬНИКА ДО ТОЧКИ
+                // ХОТЯ МОЖЕТ
+                // ЕСЛИ ЕБУЧАЯ ТОЧКА НАХОДИТСЯ ВНУТРИ ТРЕУГОЛЬНИКА
+                // ТОГДА КАКОГО ХУЯ ПРОСКАКАЛО ПРЕДЫДУЩИЕ ЭТАПЫ МУДИЛА
+                if (link == CurentArc.trAB)
                     link = CurentArc.trBA;
+                else
+                    link = CurentArc.trAB;
+                System.Console.Write("9");
 
                 // если треугольник не найден, то переопределяем путь от точки до центроида нвоого треугольника
                 wayToTriangle = new Arc(_point, link.Centroid);
+                System.Console.Write("10");
             }
             // Возврат ссылки на треугольник
             return link;
@@ -186,13 +207,13 @@ class Triangulation
     }
 
     // IsPointInTriangle - метод, возвращающий true если заданная точка находится в заданном треугольнике
-    private static bool IsPointInTriangle(Triangle _triangle, ToolVector _point)
+    private static bool IsPointInTriangle(Triangle _triangle, ToolPoint _point)
     {
         // Для удобства присвоим всем точкам треугольника переменные
-        ToolVector P1 = _triangle.points[0];
-        ToolVector P2 = _triangle.points[1];
-        ToolVector P3 = _triangle.points[2];
-        ToolVector P4 = _point;
+        ToolPoint P1 = _triangle.points[0];
+        ToolPoint P2 = _triangle.points[1];
+        ToolPoint P3 = _triangle.points[2];
+        ToolPoint P4 = _point;
 
         /* Формула вычисляет определитель трех 2x2 матриц, образованных путем вычитания координат x и y точек
             a представляет определитель матрицы, образованной путем вычитания координат x и y точки P4 из P1 и P2 соответственно.
@@ -208,7 +229,7 @@ class Triangulation
             Если любое из значений a, b или c равно нулю, то P4 находится на одной из сторон треугольника.
             Если a, b и c имеют разные знаки, то P4 находится вне треугольника.
         */
-        if ((a >= 0 && b >= 0 && c >= 0) || (a <= 0 && b <= 0 && c <= 0))
+        if ((a > 0 && b > 0 && c > 0) || (a < 0 && b < 0 && c < 0) || (a==0)||(b==0)||(c==0))
             return true;
         else
             return false;
@@ -216,7 +237,7 @@ class Triangulation
 
     //IsDelaunay - метод, вычисляющий принадлежность к критерию Делоне по описанной окружности
     //РАЗОБРАТЬ ПОТОМ ПОТОМУ ЧТО ЗДЕСЬ ОТКРОВЕННОЕ НЕПОНЯТНОЕ ДЕРЬМО
-    private static bool IsDelaunay(ToolVector A, ToolVector B, ToolVector C, ToolVector _CheckNode)
+    private static bool IsDelaunay(ToolPoint A, ToolPoint B, ToolPoint C, ToolPoint _CheckNode)
     {
         double x0 = _CheckNode.x;
         double y0 = _CheckNode.y;
@@ -257,7 +278,7 @@ class Triangulation
     {
         Triangle T1;
         Triangle T2;
-
+        System.Console.WriteLine("1");
         if (arc.trAB != null && arc.trBA != null)
         {
             T1 = arc.trAB;
@@ -265,8 +286,10 @@ class Triangulation
         }
         else
             return;
+        System.Console.WriteLine("2");
 
-        ToolVector[] CurentPoints = new ToolVector[4];
+        ToolPoint[] CurentPoints = new ToolPoint[4];
+        System.Console.WriteLine("3");
 
         Arc OldArcT1A1;
         Arc OldArcT1A2;
@@ -282,14 +305,17 @@ class Triangulation
         CurentPoints[1] = arc.A;
         CurentPoints[2] = arc.B;
         CurentPoints[3] = T2.GetThirdPoint(arc);
+        System.Console.WriteLine("4");
 
         //Дополнительная проверка, увеличивает скорость алгоритма на 10%
         if (Arc.ArcIntersect(CurentPoints[0], CurentPoints[3], CurentPoints[1], CurentPoints[2]))
             if (!IsDelaunay(CurentPoints[0], CurentPoints[1], CurentPoints[2], CurentPoints[3]))
             {
+                System.Console.WriteLine("5");
 
                 T1.GetTwoOtherArcs(arc, out OldArcT1A1, out OldArcT1A2);
                 T2.GetTwoOtherArcs(arc, out OldArcT2A1, out OldArcT2A2);
+                System.Console.WriteLine("6");
 
                 if (OldArcT1A1.IsConnectedWith(OldArcT2A1))
                 {
@@ -301,6 +327,7 @@ class Triangulation
                     NewArcT1A1 = OldArcT1A1; NewArcT1A2 = OldArcT2A2;
                     NewArcT2A1 = OldArcT1A2; NewArcT2A2 = OldArcT2A1;
                 }
+                System.Console.WriteLine("7");
 
                 //Изменение ребра
                 arc.A = CurentPoints[0];
@@ -314,6 +341,7 @@ class Triangulation
                 T2.arcs[0] = arc;
                 T2.arcs[1] = NewArcT2A1;
                 T2.arcs[2] = NewArcT2A2;
+                System.Console.WriteLine("8");
 
                 //перезапись точек треугольников
                 T1.points[0] = arc.A;
@@ -323,6 +351,7 @@ class Triangulation
                 T2.points[0] = arc.A;
                 T2.points[1] = arc.B;
                 T2.points[2] = Arc.GetCommonPoint(NewArcT2A1, NewArcT2A2);
+                System.Console.WriteLine("9");
 
                 //Переопределение ссылок в ребрах
                 if (NewArcT1A2.trAB == T2)
@@ -334,10 +363,12 @@ class Triangulation
                     NewArcT2A1.trAB = T2;
                 else if (NewArcT2A1.trBA == T1)
                     NewArcT2A1.trBA = T2;
+                System.Console.WriteLine("10");
 
                 //Добавление треугольников в кэш
                 Cache.Add(T1);
                 Cache.Add(T2);
+                System.Console.WriteLine("11");
 
             }
     }
@@ -345,37 +376,36 @@ class Triangulation
 
 
 
-// ToolVector - вспомогательный класс для работы с координатами точек
-// ПЕРЕИМЕНОВАТЬ В КАКОЙ-НИБУДЬ POINTS И НЕ ПОЗОРИТСЯ 
-public class ToolVector
+// ToolPoint - вспомогательный класс для работы с координатами точек
+public class ToolPoint
 {
     // координаты точек
     public double x;
     public double y;
 
     //конструктор
-    public ToolVector(double _x, double _y)
+    public ToolPoint(double _x, double _y)
     {
         x = _x;
         y = _y;
     }
 
-    // Переписанные операторы для работы с ToolVector
-    public static ToolVector operator -(ToolVector _a, ToolVector _b)
+    // Переписанные операторы для работы с ToolPoint
+    public static ToolPoint operator -(ToolPoint _a, ToolPoint _b)
     {
-        return new ToolVector(_a.x - _b.x, _a.y - _b.y);
+        return new ToolPoint(_a.x - _b.x, _a.y - _b.y);
     }
-    public static ToolVector operator +(ToolVector _a, ToolVector _b)
+    public static ToolPoint operator +(ToolPoint _a, ToolPoint _b)
     {
-        return new ToolVector(_a.x + _b.x, _a.y + _b.y);
+        return new ToolPoint(_a.x + _b.x, _a.y + _b.y);
     }
-    public static ToolVector operator *(ToolVector _a, double s)
+    public static ToolPoint operator *(ToolPoint _a, double s)
     {
-        return new ToolVector(_a.x * s, _a.y * s);
+        return new ToolPoint(_a.x * s, _a.y * s);
     }
 
     // Векторное произведение
-    public static double CrossProduct(ToolVector v1, ToolVector v2) 
+    public static double CrossProduct(ToolPoint v1, ToolPoint v2) 
     {
         return v1.x * v2.y - v2.x * v1.y;
     }
@@ -388,14 +418,14 @@ public class ToolVector
 public class Triangle
 {
     // точки образающие треугольник
-    public ToolVector[] points = new ToolVector[3];
+    public ToolPoint[] points = new ToolPoint[3];
     //ребра треугольника
     public Arc[] arcs = new Arc[3];
     //какой-то цвет для картинки
     public System.Drawing.Color color;
 
     // Centroid - метод возвращающйи точку пересечения медиан треугольника (центроид)
-    public ToolVector Centroid
+    public ToolPoint Centroid
     {
         /*
          * points[0] и points[1] представляют первые две вершины треугольника.
@@ -416,7 +446,7 @@ public class Triangle
     }
 
     //Построение треугольника по трем точкам
-    public Triangle(ToolVector _a, ToolVector _b, ToolVector _c)
+    public Triangle(ToolPoint _a, ToolPoint _b, ToolPoint _c)
     {
         points[0] = _a;
         points[1] = _b;
@@ -428,7 +458,7 @@ public class Triangle
     }
     
     // Построение треугольника по ребру и точке
-    public Triangle(Arc _arc, ToolVector _a)
+    public Triangle(Arc _arc, ToolPoint _a)
     {
         points[0] = _arc.A;
         points[1] = _arc.B;
@@ -468,7 +498,7 @@ public class Triangle
     }
 
     //GetThirdPoint - метод получения третий точки треугольника, зная ребро
-    public ToolVector GetThirdPoint(Arc _arc)
+    public ToolPoint GetThirdPoint(Arc _arc)
     {
         for (int i = 0; i < 3; i++)
             if (_arc.A != points[i] && _arc.B != points[i])
@@ -478,7 +508,7 @@ public class Triangle
     }
 
     //GetArcBeatwen2Points - метод поиска ребра по двум заданным точкам
-    public Arc GetArcBeatwen2Points(ToolVector _a, ToolVector _b)
+    public Arc GetArcBeatwen2Points(ToolPoint _a, ToolPoint _b)
     {
         for (int i = 0; i < 3; i++)
             if (arcs[i].A == _a && arcs[i].B == _b || arcs[i].A == _b && arcs[i].B == _a)
@@ -531,13 +561,13 @@ class DynamicCache
     private UInt32 InCache = 0;
 
     //Реальные размеры кэшируемого пространства
-    private readonly ToolVector SizeOfSpace;
+    private readonly ToolPoint SizeOfSpace;
 
     //Размеры одной ячейки кэша в пересчете на реальное пространство
     private double xSize;
     private double ySize;
 
-    public DynamicCache(ToolVector _sizeOfSpace)
+    public DynamicCache(ToolPoint _sizeOfSpace)
     {
         SizeOfSpace = _sizeOfSpace;
         xSize = SizeOfSpace.x / (double)Size;
@@ -553,7 +583,7 @@ class DynamicCache
 
         Cache[GetKey(_T.Centroid)] = _T;
     }
-    public Triangle FindTriangle(ToolVector _Point)
+    public Triangle FindTriangle(ToolPoint _Point)
     {
         UInt32 key = GetKey(_Point);
         if (Cache[key] != null)
@@ -593,7 +623,7 @@ class DynamicCache
 
         Cache = NewCache;
     }
-    private UInt32 GetKey(ToolVector _point)
+    private UInt32 GetKey(ToolPoint _point)
     {
         UInt32 i = (UInt32)(_point.y / ySize);
         UInt32 j = (UInt32)(_point.x / xSize);
@@ -620,8 +650,8 @@ class DynamicCache
 public class Arc
 {
     // точки конца ребра
-    public ToolVector A;
-    public ToolVector B;
+    public ToolPoint A;
+    public ToolPoint B;
 
     //Ссылка на треугольники в которые входит ребро
     public Triangle trAB;
@@ -643,7 +673,7 @@ public class Arc
     }
     
     //конструктор
-    public Arc(ToolVector _A, ToolVector _B)
+    public Arc(ToolPoint _A, ToolPoint _B)
     {
         A = _A;
         B = _B;
@@ -653,7 +683,7 @@ public class Arc
     public static bool ArcIntersect(Arc a1, Arc a2)
     {
         //обозначим для удобности точки концов отрезков
-        ToolVector p1, p2, p3, p4;
+        ToolPoint p1, p2, p3, p4;
         p1 = a1.A;
         p2 = a1.B;
         p3 = a2.A;
@@ -698,7 +728,7 @@ public class Arc
     // ArcIntersect - метод, возвращающий true усли два отрезка, заданные точками, пересекаются
     //МНЕ НЕ НРАВИТСЯ ЧТО В ДВУХ МЕТОДА ОДИНАКОВЫЙ КОД
     //НУЖНО ОСТАВИТЬ НИЖНИЙ МЕТОД КАК ЕСТЬ, А В ЕГО ПЕРЕГРУЗКЕ ВЫЗВАТЬ ЕГО ЖЕ
-    public static bool ArcIntersect(ToolVector p1, ToolVector p2, ToolVector p3, ToolVector p4)
+    public static bool ArcIntersect(ToolPoint p1, ToolPoint p2, ToolPoint p3, ToolPoint p4)
     {
         //определение направления
         double d1 = Direction(p3, p4, p1);
@@ -730,7 +760,7 @@ public class Arc
     }
 
     //GetCommonPoint - метод, возвращающий общую точку двух ребер
-    public static ToolVector GetCommonPoint(Arc a1, Arc a2)
+    public static ToolPoint GetCommonPoint(Arc a1, Arc a2)
     {
         //тупой перебор
         if (a1.A == a2.A)
@@ -760,13 +790,13 @@ public class Arc
     }
 
     //Direction - метод, возвращающий направление через векторное произведение
-    private static double Direction(ToolVector pi, ToolVector pj, ToolVector pk)
+    private static double Direction(ToolPoint pi, ToolPoint pj, ToolPoint pk)
     {
-        return ToolVector.CrossProduct((pk - pi), (pj - pi));
+        return ToolPoint.CrossProduct((pk - pi), (pj - pi));
     }
 
     // OnSegment - метод, который проверяет, лежит ли точка pk на отрезке, образованном двумя другими точками pi и pj
-    private static bool OnSegment(ToolVector pi, ToolVector pj, ToolVector pk)
+    private static bool OnSegment(ToolPoint pi, ToolPoint pj, ToolPoint pk)
     {
         if ((Math.Min(pi.x, pj.x) <= pk.x && pk.x <= Math.Max(pi.x, pj.x)) && (Math.Min(pi.y, pj.y) <= pk.y && pk.y <= Math.Max(pi.y, pj.y)))
             return true;
@@ -774,53 +804,74 @@ public class Arc
             return false;
     }
 }
+
+
+
+
+
+//Program - основная программа
 class Program
 {
     static void Main()
     {
         // Загрузка изображения
-        Bitmap image = new("InterlacedImage.jpg"); // Замените путь на путь к вашему изображению
+        Bitmap image = new Bitmap("OriginalImage.jpg"); // Замените путь на путь к вашему изображению
+
+        ApplyInterlace(image);
+
+
+        Bitmap image2 = new Bitmap(image.Width * 20, image.Height * 20);
+        using (Graphics gr = Graphics.FromImage(image2))
+        {
+            gr.DrawImage(image, 0, 0, image.Width * 20, image.Height * 20);
+            image2.Save("BigImage.jpg");
+        }
 
         // Создание списка точек для триангуляции
-        List<ToolVector> Points = new()
-        {
-            // Добавление "рамочных" точек
-            new ToolVector(0, 0),
-            new ToolVector(image.Width, 0),
-            new ToolVector(image.Width, image.Height),
-            new ToolVector(0, image.Height)
-        };
+        List<ToolPoint> Points = new List<ToolPoint>();
+
+        // Добавление "рамочных" точек
+        Points.Add(new ToolPoint(0, 0));
+        Points.Add(new ToolPoint(image2.Width, 0));
+        Points.Add(new ToolPoint(image2.Width, image2.Height));
+        Points.Add(new ToolPoint(0, image2.Height));
 
         // Добавление случайных точек с минимальным расстоянием в один пиксель
-        Random random = new();
-        int numberOfRandomPoints = 2000; // Установите количество случайных точек
-        int minDistance = 2; // Минимальное расстояние между точками в пикселях
+        Random random = new Random();
+        int numberOfRandomPoints = 30000; // Установите количество случайных точек
+        int minDistance = 1; // Минимальное расстояние между точками в пикселях
 
         for (int i = 0; i < numberOfRandomPoints; i++)
         {
-            ToolVector randomPoint = GenerateRandomPoint(random, image.Width, image.Height, minDistance, Points);
+            ToolPoint randomPoint = GenerateRandomPoint(random, image2.Width, image2.Height, minDistance, Points);
             Points.Add(randomPoint);
         }
 
         // Создание объекта триангуляции
-        Triangulation triangulation = new(Points);
+        Triangulation triangulation = new Triangulation(Points);
+
 
         // Рисование и закрашивание треугольников на изображении
-        using (Graphics g = Graphics.FromImage(image))
+        using (Graphics g = Graphics.FromImage(image2))
         {
             foreach (var triangle in triangulation.triangles)
             {
-                // Определение цвета в вершинах треугольника
-                Color color1 = GetPixel(image, (int)triangle.points[0].x, (int)triangle.points[0].y);
-                Color color2 = GetPixel(image, (int)triangle.points[1].x, (int)triangle.points[1].y);
-                Color color3 = GetPixel(image, (int)triangle.points[2].x, (int)triangle.points[2].y);
 
-                // Вычисление среднего значения цвета
-                int avgR = (color1.R + color2.R + color3.R) / 3;
-                int avgG = (color1.G + color2.G + color3.G) / 3;
-                int avgB = (color1.B + color2.B + color3.B) / 3;
+                Color color1 = GetPixel(image2, (int)triangle.points[0].x, (int)triangle.points[0].y);
+                Color color2 = GetPixel(image2, (int)triangle.points[1].x, (int)triangle.points[1].y);
+                Color color3 = GetPixel(image2, (int)triangle.points[2].x, (int)triangle.points[2].y);
+
+
+
+                float alpha = 1f / 3f; // коэффициент для линейной интерполяции
+
+                int avgR = (int)((1 - alpha) * color1.R + alpha * (color2.R + color3.R) / 2);
+                int avgG = (int)((1 - alpha) * color1.G + alpha * (color2.G + color3.G) / 2);
+                int avgB = (int)((1 - alpha) * color1.B + alpha * (color2.B + color3.B) / 2);
 
                 Color avgColor = Color.FromArgb(avgR, avgG, avgB);
+
+
 
                 // Закрашивание треугольника средним значением цвета
                 Brush brush = new SolidBrush(avgColor);
@@ -832,12 +883,17 @@ class Program
             }
         }
 
+        Bitmap image3 = new Bitmap(image2.Width * 1 / 20, image2.Height * 1 / 20);
+        using (Graphics gr = Graphics.FromImage(image3))
+        {
+            gr.DrawImage(image2, 0, 0, image2.Width * 1 / 20, image2.Height * 1 / 20);
+        }
         // Сохранение результата
-        image.Save("TriangulatedImage.jpg");
+        image3.Save("TriangulatedImage.jpg");
     }
 
     // Функция для генерации случайной точки с минимальным расстоянием от существующих точек
-    static ToolVector GenerateRandomPoint(Random random, int maxWidth, int maxHeight, int minDistance, List<ToolVector> existingPoints)
+    static ToolPoint GenerateRandomPoint(Random random, int maxWidth, int maxHeight, int minDistance, List<ToolPoint> existingPoints)
     {
         while (true)
         {
@@ -846,7 +902,6 @@ class Program
 
             // Проверка расстояния от новой точки до существующих точек
             bool isValid = true;
-
             foreach (var existingPoint in existingPoints)
             {
                 int distanceSquared = (randomX - (int)existingPoint.x) * (randomX - (int)existingPoint.x) +
@@ -860,7 +915,7 @@ class Program
             }
 
             if (isValid)
-                return new ToolVector(randomX, randomY);
+                return new ToolPoint(randomX, randomY);
         }
     }
 
@@ -871,7 +926,23 @@ class Program
         y = Math.Max(0, Math.Min(y, image.Height - 1));
         return image.GetPixel(x, y);
     }
+
+    static void ApplyInterlace(Bitmap image)
+    {
+        // Пример простого интерлейса - замена каждого пятого пикселя на черный
+        for (int y = 1; y < image.Height; y += 5)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                image.SetPixel(x, y, Color.Black);
+            }
+        }
+        image.Save("InterlacedImage.jpg");
+    }
+
 }
+
+
 /*
 class Program
 {

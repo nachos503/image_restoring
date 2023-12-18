@@ -1,11 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\ConsoleApp2",
-    "\\ConsoleApp2\\bin",
-    "\\ConsoleApp2\\bin\\Debug",
-    "\\ConsoleApp2\\bin\\Debug\\net6.0"
+    "\\ConsoleApp2"
   ],
-  "SelectedNode": "\\ConsoleApp2\\Program.cs",
+  "SelectedNode": "\\ConsoleApp2.sln",
   "PreviewInSolutionExplorer": false
 }
