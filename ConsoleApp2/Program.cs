@@ -11,11 +11,11 @@ using Rectangle = System.Drawing.Rectangle;
 class Triangulation
 {
     // Список точек, на основе которых строятся треугольники
-    public List<ToolVector> points = new List<ToolVector>();
+    public List<ToolVector> points = new();
     // Список треугольников
-    public List<Triangle> triangles = new List<Triangle>();
+    public List<Triangle> triangles = new();
 
-    private DynamicCache Cache = null;
+    private readonly DynamicCache Cache = null;
 
     // Triangulation - очень странный и ебанутый конструктор 
     public Triangulation(List<ToolVector> _points)
@@ -40,18 +40,18 @@ class Triangulation
         Cache.Add(triangles[0]);
         Cache.Add(triangles[1]);
 
-        Triangle CurentTriangle = null;
-        Triangle NewTriangle0 = null;
-        Triangle NewTriangle1 = null;
-        Triangle NewTriangle2 = null;
+        Triangle CurentTriangle;
+        Triangle NewTriangle0;
+        Triangle NewTriangle1;
+        Triangle NewTriangle2;
 
-        Arc NewArc0 = null;
-        Arc NewArc1 = null;
-        Arc NewArc2 = null;
+        Arc NewArc0;
+        Arc NewArc1;
+        Arc NewArc2;
 
-        Arc OldArc0 = null;
-        Arc OldArc1 = null;
-        Arc OldArc2 = null;
+        Arc OldArc0;
+        Arc OldArc1;
+        Arc OldArc2;
 
         // Проход по всем данным точкам
         for (int i = 4; i < _points.Count; i++)
@@ -137,10 +137,7 @@ class Triangulation
         // link - передача ссылки из кэша
         Triangle link = Cache.FindTriangle(_point);
         // если ссылка пустая - возврат первого треугольника
-        if (link == null)
-        {
-            link = triangles[0];
-        }
+        link ??= triangles[0];
         // если по ссылке передали верный треугольник - возврат ссылки на треугольник
         if (IsPointInTriangle(link, _point))
         {
@@ -150,8 +147,8 @@ class Triangulation
         else
         {
             //Путь от центроида найденного треугольника до искомой точки
-            Arc wayToTriangle = new Arc(_point, link.Centroid);
-            Arc CurentArc = null;
+            Arc wayToTriangle = new(_point, link.Centroid);
+            Arc CurentArc;
             // Пока точка не окажется внутри треугольника
             while (!IsPointInTriangle(link, _point))
             {
@@ -173,7 +170,7 @@ class Triangulation
     }
 
     // GetIntersectedArc - метод, возвращающий ребро треугольника которое пересекается с линией
-    private Arc GetIntersectedArc(Arc line, Triangle triangle)
+    private static Arc GetIntersectedArc(Arc line, Triangle triangle)
     {
         if (Arc.ArcIntersect(triangle.arcs[0], line))
             return triangle.arcs[0];
@@ -189,7 +186,7 @@ class Triangulation
     }
 
     // IsPointInTriangle - метод, возвращающий true если заданная точка находится в заданном треугольнике
-    private bool IsPointInTriangle(Triangle _triangle, ToolVector _point)
+    private static bool IsPointInTriangle(Triangle _triangle, ToolVector _point)
     {
         // Для удобства присвоим всем точкам треугольника переменные
         ToolVector P1 = _triangle.points[0];
@@ -219,7 +216,7 @@ class Triangulation
 
     //IsDelaunay - метод, вычисляющий принадлежность к критерию Делоне по описанной окружности
     //РАЗОБРАТЬ ПОТОМ ПОТОМУ ЧТО ЗДЕСЬ ОТКРОВЕННОЕ НЕПОНЯТНОЕ ДЕРЬМО
-    private bool IsDelaunay(ToolVector A, ToolVector B, ToolVector C, ToolVector _CheckNode)
+    private static bool IsDelaunay(ToolVector A, ToolVector B, ToolVector C, ToolVector _CheckNode)
     {
         double x0 = _CheckNode.x;
         double y0 = _CheckNode.y;
@@ -258,8 +255,8 @@ class Triangulation
     //АНАЛОГИЧНО
     private void CheckDelaunayAndRebuild(Arc arc)
     {
-        Triangle T1 = null;
-        Triangle T2 = null;
+        Triangle T1;
+        Triangle T2;
 
         if (arc.trAB != null && arc.trBA != null)
         {
@@ -271,15 +268,15 @@ class Triangulation
 
         ToolVector[] CurentPoints = new ToolVector[4];
 
-        Arc OldArcT1A1 = null;
-        Arc OldArcT1A2 = null;
-        Arc OldArcT2A1 = null;
-        Arc OldArcT2A2 = null;
+        Arc OldArcT1A1;
+        Arc OldArcT1A2;
+        Arc OldArcT2A1;
+        Arc OldArcT2A2;
 
-        Arc NewArcT1A1 = null;
-        Arc NewArcT1A2 = null;
-        Arc NewArcT2A1 = null;
-        Arc NewArcT2A2 = null;
+        Arc NewArcT1A1;
+        Arc NewArcT1A2;
+        Arc NewArcT2A1;
+        Arc NewArcT2A2;
 
         CurentPoints[0] = T1.GetThirdPoint(arc);
         CurentPoints[1] = arc.A;
@@ -534,7 +531,7 @@ class DynamicCache
     private UInt32 InCache = 0;
 
     //Реальные размеры кэшируемого пространства
-    private ToolVector SizeOfSpace;
+    private readonly ToolVector SizeOfSpace;
 
     //Размеры одной ячейки кэша в пересчете на реальное пространство
     private double xSize;
@@ -578,7 +575,7 @@ class DynamicCache
     private void Increase()
     {
         Triangle[] NewCache = new Triangle[(Size * 2) * (Size * 2)];
-        UInt32 newIndex = 0;
+        UInt32 newIndex;
 
         //Передача ссылок из старого кэша в новый
         for (UInt32 i = 0; i < Cache.Length; i++)
@@ -590,7 +587,7 @@ class DynamicCache
             NewCache[newIndex + Size * 2 + 1] = Cache[i];
         }
 
-        Size = Size * 2;
+        Size *= 2;
         xSize = SizeOfSpace.x / (double)Size;
         ySize = SizeOfSpace.y / (double)Size;
 
@@ -782,19 +779,20 @@ class Program
     static void Main()
     {
         // Загрузка изображения
-        Bitmap image = new Bitmap("InterlacedImage.jpg"); // Замените путь на путь к вашему изображению
+        Bitmap image = new("InterlacedImage.jpg"); // Замените путь на путь к вашему изображению
 
         // Создание списка точек для триангуляции
-        List<ToolVector> Points = new List<ToolVector>();
-
-        // Добавление "рамочных" точек
-        Points.Add(new ToolVector(0, 0));
-        Points.Add(new ToolVector(image.Width, 0));
-        Points.Add(new ToolVector(image.Width, image.Height));
-        Points.Add(new ToolVector(0, image.Height));
+        List<ToolVector> Points = new()
+        {
+            // Добавление "рамочных" точек
+            new ToolVector(0, 0),
+            new ToolVector(image.Width, 0),
+            new ToolVector(image.Width, image.Height),
+            new ToolVector(0, image.Height)
+        };
 
         // Добавление случайных точек с минимальным расстоянием в один пиксель
-        Random random = new Random();
+        Random random = new();
         int numberOfRandomPoints = 2000; // Установите количество случайных точек
         int minDistance = 2; // Минимальное расстояние между точками в пикселях
 
@@ -805,7 +803,7 @@ class Program
         }
 
         // Создание объекта триангуляции
-        Triangulation triangulation = new Triangulation(Points);
+        Triangulation triangulation = new(Points);
 
         // Рисование и закрашивание треугольников на изображении
         using (Graphics g = Graphics.FromImage(image))
