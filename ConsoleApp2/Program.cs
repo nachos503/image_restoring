@@ -590,11 +590,11 @@ class DynamicCache
             return Cache[key];
 
         // Дополнительный поиск не null ячейки, ускоряет алгоритм 
-        for (uint i = key - 25; i < key && i >= 0 && i < Cache.Length; i++)
+        for (UInt32 i = key - 25; i < key && i >= 0 && i < Cache.Length; i++)
             if (Cache[i] != null)
                 return Cache[i];
 
-        for (uint i = key + 25; i > key && i >= 0 && i < Cache.Length; i--)
+        for (UInt32 i = key + 25; i > key && i >= 0 && i < Cache.Length; i--)
             if (Cache[i] != null)
                 return Cache[i];
 
@@ -815,37 +815,40 @@ class Program
     static void Main()
     {
         // Загрузка изображения
-        Bitmap image = new Bitmap("OriginalImage.jpg"); // Замените путь на путь к вашему изображению
+        Bitmap image2 = new Bitmap("OriginalImage.jpg"); // Замените путь на путь к вашему изображению
 
-        ApplyInterlace(image);
+        ApplyInterlace(image2);
+        Console.WriteLine("Добавлен интерлейс");
 
+        //Bitmap image2 = new Bitmap(image.Width * 20, image.Height * 20);
+        //using (Graphics gr = Graphics.FromImage(image2))
+        //{
+        //    gr.DrawImage(image, 0, 0, image.Width * 20, image.Height * 20);
+        //    image2.Save("BigImage.jpg");
+        //}
 
-        Bitmap image2 = new Bitmap(image.Width * 20, image.Height * 20);
-        using (Graphics gr = Graphics.FromImage(image2))
-        {
-            gr.DrawImage(image, 0, 0, image.Width * 20, image.Height * 20);
-            image2.Save("BigImage.jpg");
-        }
-
+        Console.WriteLine("Изображение увеличено");
         // Создание списка точек для триангуляции
         List<ToolPoint> Points = new List<ToolPoint>();
 
         // Добавление "рамочных" точек
-        Points.Add(new ToolPoint(0, 0));
-        Points.Add(new ToolPoint(image2.Width, 0));
-        Points.Add(new ToolPoint(image2.Width, image2.Height));
-        Points.Add(new ToolPoint(0, image2.Height));
+        //Points.Add(new ToolPoint(0, 0));
+        //Points.Add(new ToolPoint(image2.Width, 0));
+        //Points.Add(new ToolPoint(image2.Width, image2.Height));
+        //Points.Add(new ToolPoint(0, image2.Height));
 
         // Добавление случайных точек с минимальным расстоянием в один пиксель
-        Random random = new Random();
-        int numberOfRandomPoints = 30000; // Установите количество случайных точек
-        int minDistance = 1; // Минимальное расстояние между точками в пикселях
+        //Random random = new Random();
+        //int numberOfRandomPoints = 30000; // Установите количество случайных точек
+        int minDistance = 1; // Минимальное расстояние между точками в пикселях //СДЕЛАТЬ КОНСТАНТОЙ
 
-        for (int i = 0; i < numberOfRandomPoints; i++)
-        {
-            ToolPoint randomPoint = GenerateRandomPoint(random, image2.Width, image2.Height, minDistance, Points);
-            Points.Add(randomPoint);
-        }
+        GeneratePoints(image2.Width, image2.Height, minDistance, Points);
+        Console.WriteLine("Точки сгенерированы");
+        //for (int i = 0; i < numberOfRandomPoints; i++)
+        //{
+        //    ToolPoint randomPoint = GenerateRandomPoint(random, image2.Width, image2.Height, minDistance, Points);
+        //    Points.Add(randomPoint);
+        //}
 
         // Создание объекта триангуляции
         Triangulation triangulation = new Triangulation(Points);
@@ -890,34 +893,54 @@ class Program
         }
         // Сохранение результата
         image3.Save("TriangulatedImage.jpg");
+        System.Console.WriteLine("Изображение расширено");
     }
 
     // Функция для генерации случайной точки с минимальным расстоянием от существующих точек
-    static ToolPoint GenerateRandomPoint(Random random, int maxWidth, int maxHeight, int minDistance, List<ToolPoint> existingPoints)
+    //static ToolPoint GenerateRandomPoint(Random random, int maxWidth, int maxHeight, int minDistance, List<ToolPoint> existingPoints)
+    //{
+    //    while (true)
+    //    {
+    //        int randomX = random.Next(minDistance, maxWidth - minDistance);
+    //        int randomY = random.Next(minDistance, maxHeight - minDistance);
+
+    //        // Проверка расстояния от новой точки до существующих точек
+    //        bool isValid = true;
+    //        foreach (var existingPoint in existingPoints)
+    //        {
+    //            int distanceSquared = (randomX - (int)existingPoint.x) * (randomX - (int)existingPoint.x) +
+    //                                  (randomY - (int)existingPoint.y) * (randomY - (int)existingPoint.y);
+
+    //            if (distanceSquared < minDistance * minDistance)
+    //            {
+    //                isValid = false;
+    //                break;
+    //            }
+    //        }
+
+    //        if (isValid)
+    //            return new ToolPoint(randomX, randomY);
+    //    }
+    //}
+
+
+    static void GeneratePoints(int maxWidth, int maxHeight, int minDistance, List<ToolPoint> Points)
     {
-        while (true)
+        for (int i = 0; i < maxHeight; i++)
         {
-            int randomX = random.Next(minDistance, maxWidth - minDistance);
-            int randomY = random.Next(minDistance, maxHeight - minDistance);
-
-            // Проверка расстояния от новой точки до существующих точек
-            bool isValid = true;
-            foreach (var existingPoint in existingPoints)
+            if (i % 2 != 0)
+                for (int j = 0; j <= maxWidth; j++) 
+                    Points.Add(new ToolPoint(i, j));
+            else
             {
-                int distanceSquared = (randomX - (int)existingPoint.x) * (randomX - (int)existingPoint.x) +
-                                      (randomY - (int)existingPoint.y) * (randomY - (int)existingPoint.y);
-
-                if (distanceSquared < minDistance * minDistance)
-                {
-                    isValid = false;
-                    break;
-                }
+                Points.Add(new ToolPoint(i, 0));
+                Points.Add(new ToolPoint(i, maxWidth));
+                for (int j = 0; j < maxWidth - 1; j++)
+                    Points.Add(new ToolPoint(i, j + 0.5));
             }
-
-            if (isValid)
-                return new ToolPoint(randomX, randomY);
         }
     }
+
 
     // Функция для получения цвета пикселя с проверкой на границы изображения
     static Color GetPixel(Bitmap image, int x, int y)
