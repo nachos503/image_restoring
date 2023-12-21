@@ -1,0 +1,26 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "8c2225aa-7cc3-4f0d-8047-1f0bcc0d9007": {
+      "ProjectGuid": "8c2225aa-7cc3-4f0d-8047-1f0bcc0d9007",
+      "DisplayName": "ConsoleApp2",
+      "ColorIndex": 0
+    },
+    "694ddf91-a157-4aa2-889d-3b6079963ed6": {
+      "ProjectGuid": "694ddf91-a157-4aa2-889d-3b6079963ed6",
+      "DisplayName": "PolygonTriangulation",
+      "ColorIndex": 1
+    },
+    "9b733fd3-e21b-4713-8deb-3ca742f595fd": {
+      "ProjectGuid": "9b733fd3-e21b-4713-8deb-3ca742f595fd",
+      "DisplayName": "DeLaunay .NET",
+      "ColorIndex": 2
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "Прочие файлы",
+      "ColorIndex": -1
+    }
+  },
+  "NextColorIndex": 3
+}
