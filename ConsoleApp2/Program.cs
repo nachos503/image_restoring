@@ -20,27 +20,27 @@ class Triangulation
     private readonly DynamicCache Cache = null;
 
     // Triangulation - очень странный и ебанутый конструктор 
-    public Triangulation(List<ToolPoint> _points)
+    public Triangulation(List<ToolPoint> _points, int maxWidth)
     {
         points = _points;
 
-        // Инициализация кэша
+        // Инициализация кэша от 3 созданной точки
         Cache = new DynamicCache(points[2]);
 
         // Добавление супер структуры (что бы то ни значило) (скорей всего это ничего не значит кто бы что не говорил)
         // По сути здесь добавялется в лист один треугольник по трем точкам и к нему добавляется по смежному ребру и третьей точке вторйо треугольник
         // По сути так называемая супер структура - два смежных треугольника
-        triangles.Add(new Triangle(points[0], points[1], points[2]));
-        triangles.Add(new Triangle(triangles[0].arcs[2], points[3]));
+        triangles.Add(new Triangle(points[0], points[1], points[maxWidth+1]));
+        triangles.Add(new Triangle(triangles[0].arcs[2], points[maxWidth+2]));
 
-        // Добавление ссылок в ребра на смежные треугольники супер структуры
+        // Добавление ссылок в ребра на смежные треугольники
         triangles[0].arcs[2].trAB = triangles[1];
         triangles[1].arcs[0].trBA = triangles[0];
 
         // Добавление супер структуры в кэш
         // Добавление двух смежных треугольников в кэш
-        Cache.Add(triangles[0]);
-        Cache.Add(triangles[1]);
+        Cache.AddTriangle(triangles[0]);
+        Cache.AddTriangle(triangles[1]);
 
         Triangle CurentTriangle;
         Triangle NewTriangle0;
@@ -115,9 +115,9 @@ class Triangulation
                 triangles.Add(NewTriangle2);
                 
                 //Добавление в кэш новых треугольников
-                Cache.Add(NewTriangle0);
-                Cache.Add(NewTriangle1);
-                Cache.Add(NewTriangle2);
+                Cache.AddTriangle(NewTriangle0);
+                Cache.AddTriangle(NewTriangle1);
+                Cache.AddTriangle(NewTriangle2);
                 
                 CheckDelaunayAndRebuild(OldArc0);
                 CheckDelaunayAndRebuild(OldArc1);
@@ -366,8 +366,8 @@ class Triangulation
                 System.Console.WriteLine("10");
 
                 //Добавление треугольников в кэш
-                Cache.Add(T1);
-                Cache.Add(T2);
+                Cache.AddTriangle(T1);
+                Cache.AddTriangle(T2);
                 System.Console.WriteLine("11");
 
             }
@@ -552,44 +552,61 @@ public class Triangle
 // DynamicCache - класс для кэша (сказали надо) (не хочу разбираться зачем и что он делает)
 class DynamicCache
 {
+    //Создаем массив кэша, в котором будут хранится ссылки на созданные треугольники
     private Triangle[] Cache = new Triangle[4];
 
     //Текущий размер кэша
-    private UInt32 Size = 2;
+    private UInt32 CacheSize = 2;
 
-    //Треугольников в кэше
-    private UInt32 InCache = 0;
+    //Количество треугольников в кэше
+    private UInt32 TrianglesInCache = 0;
 
     //Реальные размеры кэшируемого пространства
+    //ПОЧЕМУ В ФОРМАТЕ ТОЧКИ ГАЛЛАХ
     private readonly ToolPoint SizeOfSpace;
 
     //Размеры одной ячейки кэша в пересчете на реальное пространство
     private double xSize;
     private double ySize;
 
+    //Конструктор, прнимающий на вход точку
     public DynamicCache(ToolPoint _sizeOfSpace)
     {
         SizeOfSpace = _sizeOfSpace;
-        xSize = SizeOfSpace.x / (double)Size;
-        ySize = SizeOfSpace.y / (double)Size;
+        //Пересчет на реальное пространство координаты
+        //ПОЧЕМУ МЫ БЕРЕМ КООРДИНАТУ И ДЕЛИМ ЕЕ НА РАЗМЕР КЭША ГОСПОДИ
+        //Он гарантирует, что вычисленные индексы попадают в допустимый диапазон массива Cache
+        xSize = SizeOfSpace.x / (double)CacheSize;
+        ySize = SizeOfSpace.y / (double)CacheSize;
     }
 
-    public void Add(Triangle _T)
+    // Add - метод, добавляющий треугольник в кэш
+    public void AddTriangle(Triangle _T)
     {
-        InCache++;
+        //увеличениие общего количества треугольников в кэше
+        TrianglesInCache++;
 
-        if (InCache >= Cache.Length * 3)
+        //если треугольников в кэше стало больше, чем длина массива умноженная на 3, то увеличить размер массива
+        //ЕПТА НАХУЯ НА ТРИ ДОМНОЖАТЬ ЧТО ЗА ШАМАНСКИЕ ФОКУСЫ НАХУЙ
+        //Умножение длины массива Cache на 3 может быть связано с ожидаемым количеством треугольников, которые могут быть сохранены в кэше.
+        if (TrianglesInCache >= Cache.Length * 3)
             Increase();
-
+        //получаем ключ центроида добавляемого треугольника и кладем треугольник в ячейку под ключом центрода
         Cache[GetKey(_T.Centroid)] = _T;
     }
+
+    // FindTriangle - поиск треугольника в кэше по заданной точке
     public Triangle FindTriangle(ToolPoint _Point)
     {
+        //получаем ключ заданной точки
         UInt32 key = GetKey(_Point);
+        //если ключ существует, то возвращаем треугольник, лежащий в кэше под этим номером
         if (Cache[key] != null)
             return Cache[key];
 
-        // Дополнительный поиск не null ячейки, ускоряет алгоритм 
+        // Дополнительный поиск не нулевой ячейки, ускоряет алгоритм 
+        //Целью этих дополнительных поисков является повышение эффективности алгоритма путем проверки ближайших индексов на наличие ненулевого значения перед возвратом значения null.
+        //Это может помочь уменьшить количество итераций, необходимых для поиска ненулевого треугольника в массиве Cach
         for (UInt32 i = key - 25; i < key && i >= 0 && i < Cache.Length; i++)
             if (Cache[i] != null)
                 return Cache[i];
@@ -597,14 +614,14 @@ class DynamicCache
         for (UInt32 i = key + 25; i > key && i >= 0 && i < Cache.Length; i--)
             if (Cache[i] != null)
                 return Cache[i];
-
+        //ВСЕ ЕЩЕ 0 ПОНИМАНИЯ ОТКУДА ТУТ 25 
         return null;
     }
 
-    //Увеличивает размер кэша в 4 раза
+    // Increase - метод, увеличивающий размер кэша в 4 раза
     private void Increase()
     {
-        Triangle[] NewCache = new Triangle[(Size * 2) * (Size * 2)];
+        Triangle[] NewCache = new Triangle[(CacheSize * 2) * (CacheSize * 2)];
         UInt32 newIndex;
 
         //Передача ссылок из старого кэша в новый
@@ -613,13 +630,13 @@ class DynamicCache
             newIndex = GetNewIndex(i);
             NewCache[newIndex] = Cache[i];
             NewCache[newIndex + 1] = Cache[i];
-            NewCache[newIndex + Size * 2] = Cache[i];
-            NewCache[newIndex + Size * 2 + 1] = Cache[i];
+            NewCache[newIndex + CacheSize * 2] = Cache[i];
+            NewCache[newIndex + CacheSize * 2 + 1] = Cache[i];
         }
 
-        Size *= 2;
-        xSize = SizeOfSpace.x / (double)Size;
-        ySize = SizeOfSpace.y / (double)Size;
+        CacheSize *= 2;
+        xSize = SizeOfSpace.x / (double)CacheSize;
+        ySize = SizeOfSpace.y / (double)CacheSize;
 
         Cache = NewCache;
     }
@@ -628,19 +645,19 @@ class DynamicCache
         UInt32 i = (UInt32)(_point.y / ySize);
         UInt32 j = (UInt32)(_point.x / xSize);
 
-        if (i == Size)
+        if (i == CacheSize)
             i--;
-        if (j == Size)
+        if (j == CacheSize)
             j--;
 
-        return i * Size + j;
+        return i * CacheSize + j;
     }
     private UInt32 GetNewIndex(UInt32 _OldIndex)
     {
-        UInt32 i = (_OldIndex / Size) * 2;
-        UInt32 j = (_OldIndex % Size) * 2;
+        UInt32 i = (_OldIndex / CacheSize) * 2;
+        UInt32 j = (_OldIndex % CacheSize) * 2;
 
-        return i * (Size * 2) + j;
+        return i * (CacheSize * 2) + j;
     }
 }
 
@@ -851,7 +868,7 @@ class Program
         //}
 
         // Создание объекта триангуляции
-        Triangulation triangulation = new Triangulation(Points);
+        Triangulation triangulation = new Triangulation(Points, image2.Width);
 
 
         // Рисование и закрашивание треугольников на изображении
@@ -934,9 +951,9 @@ class Program
             else
             {
                 Points.Add(new ToolPoint(i, 0));
-                Points.Add(new ToolPoint(i, maxWidth));
                 for (int j = 0; j < maxWidth - 1; j++)
                     Points.Add(new ToolPoint(i, j + 0.5));
+                Points.Add(new ToolPoint(i, maxWidth));
             }
         }
     }
