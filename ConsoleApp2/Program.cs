@@ -652,10 +652,10 @@ class DynamicCache
         UInt32 i = (UInt32)(_point.y / ySize);
         UInt32 j = (UInt32)(_point.x / xSize);
 
-        if (i == CacheSize)
-            i--;
-        if (j == CacheSize)
-            j--;
+        if (i >= CacheSize)
+            i = CacheSize - 1;
+        if (j >= CacheSize)
+            j = CacheSize - 1;
 
         return i * CacheSize + j;
     }
