@@ -6,6 +6,7 @@ using Brush = System.Drawing.Brush;
 using Point = System.Drawing.Point;
 using Graphics = System.Drawing.Graphics;
 using Rectangle = System.Drawing.Rectangle;
+using System.Diagnostics.Eventing.Reader;
 
 
 
@@ -248,28 +249,34 @@ class Triangulation
         double x3 = C.x;
         double y3 = C.y;
 
-        double[] matrix = { (x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0), x1 - x0, y1 - y0,
-                                 (x2 - x0)*(x2 - x0) + (y2 - y0)*(y2 - y0), x2 - x0, y2 - y0,
-                                 (x3 - x0)*(x3 - x0) + (y3 - y0)*(y3 - y0), x3 - x0, y3 - y0};
+        //double[] matrix = { (x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0), x1 - x0, y1 - y0,
+        //                    (x2 - x0)*(x2 - x0) + (y2 - y0)*(y2 - y0), x2 - x0, y2 - y0,
+        //                    (x3 - x0)*(x3 - x0) + (y3 - y0)*(y3 - y0), x3 - x0, y3 - y0};
 
-        double matrixDeterminant = matrix[0] * matrix[4] * matrix[8] + matrix[1] * matrix[5] * matrix[6] + matrix[2] * matrix[3] * matrix[7] -
-                                    matrix[2] * matrix[4] * matrix[6] - matrix[0] * matrix[5] * matrix[7] - matrix[1] * matrix[3] * matrix[8];
+        //double matrixDeterminant = matrix[0] * matrix[4] * matrix[8] + matrix[1] * matrix[5] * matrix[6] + matrix[2] * matrix[3] * matrix[7] -
+        //                            matrix[2] * matrix[4] * matrix[6] - matrix[0] * matrix[5] * matrix[7] - matrix[1] * matrix[3] * matrix[8];
 
-        double a = x1 * y2 * 1 + y1 * 1 * x3 + 1 * x2 * y3
-                 - 1 * y2 * x3 - y1 * x2 * 1 - 1 * y3 * x1;
+        //double a = x1 * y2 * 1 + y1 * 1 * x3 + 1 * x2 * y3
+        //         - 1 * y2 * x3 - y1 * x2 * 1 - 1 * y3 * x1;
+
+        double a = ((x0-x1)*(y0-y3)-(x0-x3)*(y0-y1))*((x2-x1)*(x2-x3)+(y2-y1)*(y2-y3))+
+                ((x0 - x1) * (x0 - x3) - (y0 - y1) * (y0 - y3)) * ((x2 - x1) * (y2 - y3) + (x2 - x3) * (y2 - y3));
+
+        if (a > 0) return true;
+        else return false;
 
         //Sgn(a)
-        if (a < 0)
-            matrixDeterminant *= -1d;
+        //if (a < 0)
+        //    matrixDeterminant *= -1d;
 
-        if (matrixDeterminant < 0d)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        //if (matrixDeterminant < 0d)
+        //{
+        //    return true;
+        //}
+        //else
+        //{
+        //    return false;
+        //}
     }
 
     //CheckDelaunayAndRebuild - метод который тожепроверяет принадлежность к критерию и перестраивает треугольник
